@@ -1,0 +1,276 @@
+import 'package:flutter/foundation.dart';
+import '../models/booking.dart';
+import '../models/time_slot.dart';
+import '../services/database_service.dart';
+
+/// ViewModel cho quy trình đặt sân (cart, checkout, lịch sử, huỷ)
+class BookingViewModel extends ChangeNotifier {
+  final DatabaseService _db;
+
+  // Cache time slots theo ngày
+  Map<String, List<TimeSlot>> _timeSlotsByDate = {};
+  String _selectedDate = '';
+  List<TimeSlot> _selectedSlots = [];
+  bool _isLoadingSlots = false;
+
+  // Add-ons: racket=vợt, ball=bóng, water=nước
+  Map<String, bool> _selectedAddons = {
+    'racket': false,
+    'ball': false,
+    'water': false,
+  };
+
+  // Giá add-ons (VNĐ)
+  static const Map<String, double> addonPrices = {
+    'racket': 30000,
+    'ball': 50000,
+    'water': 20000,
+  };
+
+  // My bookings
+  List<Booking> _userBookings = [];
+  bool _isLoadingBookings = false;
+
+  BookingViewModel(this._db);
+
+  String get selectedDate => _selectedDate;
+  List<TimeSlot> get selectedSlots => List.unmodifiable(_selectedSlots);
+  bool get isLoadingSlots => _isLoadingSlots;
+  Map<String, bool> get selectedAddons => Map.unmodifiable(_selectedAddons);
+  List<Booking> get userBookings => _userBookings;
+  bool get isLoadingBookings => _isLoadingBookings;
+
+  List<TimeSlot> get timeSlotsForDate =>
+      _timeSlotsByDate[_selectedDate] ?? [];
+
+  // ─── Tính tổng tiền ────────────────────────────────────────────────────────
+
+  /// Tổng tiền slot đã chọn + add-ons
+  double get totalPrice {
+    double total = _selectedSlots.fold(0, (sum, slot) {
+      return sum + (slot.isPeak ? _peakPrice(slot) : _offPeakPrice(slot));
+    });
+    addonPrices.forEach((key, price) {
+      if (_selectedAddons[key] == true) total += price;
+    });
+    return total;
+  }
+
+  /// Tiền cọc 50%
+  double get depositAmount => totalPrice * 0.5;
+
+  // ─── Time Slots ────────────────────────────────────────────────────────────
+
+  /// Tải time slots của sân theo ngày
+  Future<void> loadTimeSlots(int courtId, String date) async {
+    _selectedDate = date;
+    if (_timeSlotsByDate.containsKey(date)) {
+      notifyListeners();
+      return;
+    }
+
+    _isLoadingSlots = true;
+    notifyListeners();
+
+    try {
+      final slots = await _db.getTimeSlots(courtId, date);
+      _timeSlotsByDate[date] = slots;
+    } catch (e) {
+      debugPrint('BookingViewModel.loadTimeSlots error: $e');
+    } finally {
+      _isLoadingSlots = false;
+      notifyListeners();
+    }
+  }
+
+  /// Thay đổi ngày đang xem
+  void selectDate(String date) {
+    _selectedDate = date;
+    notifyListeners();
+  }
+
+  // ─── Slot selection ────────────────────────────────────────────────────────
+
+  /// Chọn/bỏ chọn một slot
+  void toggleSlotSelection(TimeSlot slot) {
+    if (!slot.isAvailable) return;
+    final index = _selectedSlots.indexWhere((s) => s.id == slot.id);
+    if (index == -1) {
+      _selectedSlots.add(slot);
+    } else {
+      _selectedSlots.removeAt(index);
+    }
+    notifyListeners();
+  }
+
+  bool isSlotSelected(TimeSlot slot) =>
+      _selectedSlots.any((s) => s.id == slot.id);
+
+  // ─── Add-ons ───────────────────────────────────────────────────────────────
+
+  void toggleAddon(String key) {
+    if (_selectedAddons.containsKey(key)) {
+      _selectedAddons[key] = !(_selectedAddons[key] ?? false);
+      notifyListeners();
+    }
+  }
+
+  // ─── Clear ─────────────────────────────────────────────────────────────────
+
+  /// Reset toàn bộ selection (sau checkout hoặc navigate away)
+  void clearSelection() {
+    _selectedSlots = [];
+    _selectedAddons = {'racket': false, 'ball': false, 'water': false};
+    notifyListeners();
+  }
+
+  /// Reset cache time slots (khi cần refresh)
+  void clearSlotCache() {
+    _timeSlotsByDate = {};
+    notifyListeners();
+  }
+
+  // ─── Confirm Booking ───────────────────────────────────────────────────────
+
+  /// Xác nhận đặt sân – insert booking, update time slots, trả về booking id
+  Future<int> confirmBooking({
+    required int userId,
+    required int courtId,
+  }) async {
+    if (_selectedSlots.isEmpty) throw Exception('Chưa chọn slot');
+
+    // Sắp xếp slots theo giờ
+    final sorted = List<TimeSlot>.from(_selectedSlots)
+      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+
+    final booking = Booking(
+      id: 0,
+      courtId: courtId,
+      userId: userId,
+      date: sorted.first.date,
+      startTime: sorted.first.startTime,
+      endTime: sorted.last.endTime,
+      totalPrice: totalPrice,
+      status: 'confirmed',
+      addons: Map<String, bool>.from(_selectedAddons),
+      createdAt: DateTime.now().toIso8601String(),
+    );
+
+    final bookingId = await _db.insertBooking(booking);
+
+    // Update time slots → not available
+    await _db.bulkUpdateTimeSlots(
+      courtId: courtId,
+      date: sorted.first.date,
+      startTimes: sorted.map((s) => s.startTime).toList(),
+      available: false,
+    );
+
+    // Xoá cache ngày đó để force reload
+    _timeSlotsByDate.remove(sorted.first.date);
+
+    clearSelection();
+    return bookingId;
+  }
+
+  // ─── My Bookings ───────────────────────────────────────────────────────────
+
+  /// Tải lịch sử đặt sân của user
+  Future<void> loadUserBookings(int userId) async {
+    _isLoadingBookings = true;
+    notifyListeners();
+    try {
+      _userBookings = await _db.getUserBookings(userId);
+    } catch (e) {
+      debugPrint('BookingViewModel.loadUserBookings error: $e');
+    } finally {
+      _isLoadingBookings = false;
+      notifyListeners();
+    }
+  }
+
+  /// Huỷ booking
+  Future<void> cancelBooking(Booking booking) async {
+    await _db.updateBookingStatus(booking.id, 'cancelled');
+
+    // Tính các start times từ startTime → endTime (mỗi block 1h)
+    final startTimes = _expandTimeRange(booking.startTime, booking.endTime);
+    await _db.bulkUpdateTimeSlots(
+      courtId: booking.courtId,
+      date: booking.date,
+      startTimes: startTimes,
+      available: true,
+    );
+
+    // Cập nhật local list
+    final index = _userBookings.indexWhere((b) => b.id == booking.id);
+    if (index != -1) {
+      _userBookings[index] = booking.copyWith(status: 'cancelled');
+    }
+    notifyListeners();
+  }
+
+  // ─── Reviews ───────────────────────────────────────────────────────────────
+
+  /// Gửi đánh giá sân
+  Future<void> submitReview({
+    required int courtId,
+    required int userId,
+    required int? bookingId,
+    required double rating,
+    String? comment,
+  }) async {
+    await _db.insertReview(
+      courtId: courtId,
+      userId: userId,
+      bookingId: bookingId,
+      rating: rating,
+      comment: comment,
+    );
+  }
+
+  /// Kiểm tra booking đã được đánh giá chưa
+  Future<bool> hasReviewed(int bookingId) async {
+    return await _db.hasReviewed(bookingId);
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  /// Expand time range thành danh sách start times (1h block)
+  List<String> _expandTimeRange(String startTime, String endTime) {
+    final List<String> times = [];
+    int startH = int.parse(startTime.split(':')[0]);
+    int endH = int.parse(endTime.split(':')[0]);
+    for (int h = startH; h < endH; h++) {
+      times.add('${h.toString().padLeft(2, '0')}:00');
+    }
+    return times;
+  }
+
+  double _peakPrice(TimeSlot slot) {
+    // Peak price không được lưu trong TimeSlot, cần lấy từ court
+    // Tạm dùng multiplier 2.25x so với off-peak
+    return _offPeakPrice(slot) * 2.25;
+  }
+
+  double _offPeakPrice(TimeSlot slot) {
+    // Giá mặc định – sẽ được override từ CourtDetailPage với giá thực tế
+    return 100000;
+  }
+
+  /// Tính giá đúng dựa vào pricePerHour của sân
+  double calculateSlotPrice(TimeSlot slot, double offPeak, double peakPrice) {
+    return slot.isPeak ? peakPrice : offPeak;
+  }
+
+  /// Tổng tiền với giá sân cụ thể
+  double totalPriceWithCourtPrices(double offPeak, double peak) {
+    double total = _selectedSlots.fold(0, (sum, slot) {
+      return sum + (slot.isPeak ? peak : offPeak);
+    });
+    addonPrices.forEach((key, price) {
+      if (_selectedAddons[key] == true) total += price;
+    });
+    return total;
+  }
+}
