@@ -130,7 +130,7 @@ class _MapPageState extends State<MapPage> {
           if (_permissionDenied)
             Container(
               padding: const EdgeInsets.all(10),
-              color: AppColors.warning.withOpacity(0.1),
+              color: AppColors.warning.withValues(alpha: 0.1),
               child: Row(
                 children: [
                   const Icon(Icons.location_off,

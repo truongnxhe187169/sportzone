@@ -97,9 +97,9 @@ class _LoginPageState extends State<LoginPage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.08),
+                          color: AppColors.error.withValues(alpha: 0.08),
                           border: Border.all(
-                              color: AppColors.error.withOpacity(0.3)),
+                              color: AppColors.error.withValues(alpha: 0.3)),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
