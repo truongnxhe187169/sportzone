@@ -1,6 +1,6 @@
 {
   "project": "SportZone – Ứng dụng Đặt Sân Thể Thao (PRM393)",
-  "workspace": "/Users/laphuonganh/Workspace/PRM/flutter_application_1",
+  "workspace": "/Users/laphuonganh/Workspace/PRM/sportzone",
   "complete": true,
   "notes": "MVVM + Provider + SQLite. Không dùng Firebase hay BLoC. Xem .kiro/steering/ để biết conventions đầy đủ.",
   "tasks": [
