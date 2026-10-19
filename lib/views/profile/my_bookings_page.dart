@@ -71,26 +71,31 @@ class _MyBookingsPageState extends State<MyBookingsPage>
     if (confirmed != true) return;
 
     final user = context.read<AuthViewModel>().currentUser;
-    await context.read<BookingViewModel>().cancelBooking(booking);
+    final bookingVm = context.read<BookingViewModel>();
+    final notifVm = context.read<NotificationViewModel>();
+    final messenger = ScaffoldMessenger.of(context);
+    await bookingVm.cancelBooking(booking);
 
     if (user != null && mounted) {
-      await context.read<NotificationViewModel>().createNotification(
+      await notifVm.createNotification(
             userId: user.id,
             title: 'Huỷ đặt sân thành công',
             body: 'Bạn đã huỷ đặt sân ${booking.courtName ?? ''}. Tiền cọc sẽ được hoàn theo chính sách.',
             type: 'cancel',
           );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(AppStrings.bookingCancelled),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      if (mounted) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(AppStrings.bookingCancelled),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _onReview(Booking booking) async {
-    double _rating = 5;
+    double rating = 5;
     final commentCtrl = TextEditingController();
 
     await showDialog(
@@ -108,9 +113,9 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             mainAxisSize: MainAxisSize.min,
             children: [
               StarRating(
-                rating: _rating,
+                rating: rating,
                 size: 32,
-                onChanged: (r) => setDialogState(() => _rating = r),
+                onChanged: (r) => setDialogState(() => rating = r),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -143,7 +148,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                         courtId: booking.courtId,
                         userId: user.id,
                         bookingId: booking.id,
-                        rating: _rating,
+                        rating: rating,
                         comment: commentCtrl.text.trim().isEmpty
                             ? null
                             : commentCtrl.text.trim(),

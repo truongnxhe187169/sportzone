@@ -94,7 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
     if (confirmed == true && mounted) {
       await context.read<AuthViewModel>().logout();
-      context.go('/login');
+      if (mounted) context.go('/login');
     }
   }
 

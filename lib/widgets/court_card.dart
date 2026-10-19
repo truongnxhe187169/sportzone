@@ -146,6 +146,6 @@ class CourtCard extends StatelessWidget {
     if (price >= 1000) {
       return '${(price / 1000).toStringAsFixed(0)}k';
     }
-    return NumberFormat('#,###', 'vi_VN').format(price) + 'đ';
+    return '${NumberFormat('#,###', 'vi_VN').format(price)}đ';
   }
 }

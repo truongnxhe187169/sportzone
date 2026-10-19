@@ -94,9 +94,9 @@ class _RegisterPageState extends State<RegisterPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.08),
+                        color: AppColors.error.withValues(alpha: 0.08),
                         border:
-                            Border.all(color: AppColors.error.withOpacity(0.3)),
+                            Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(vm.errorMessage!,

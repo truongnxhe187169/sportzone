@@ -131,7 +131,7 @@ class BookingTile extends StatelessWidget {
   }
 
   String _formatPrice(double price) {
-    return NumberFormat('#,###', 'vi_VN').format(price) + 'đ';
+    return '${NumberFormat('#,###', 'vi_VN').format(price)}đ';
   }
 }
 
@@ -160,7 +160,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        border: Border.all(color: color.withOpacity(0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(2),
       ),
       child: Text(
