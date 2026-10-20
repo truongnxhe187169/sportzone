@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
+import '../../models/review.dart';
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../viewmodels/court_viewmodel.dart';
 import '../../widgets/star_rating.dart';
@@ -29,6 +30,7 @@ class _CourtDetailPageState extends State<CourtDetailPage> {
     _initDates();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CourtViewModel>().loadCourtById(widget.courtId);
+      context.read<CourtViewModel>().loadReviews(widget.courtId);
       context.read<BookingViewModel>().loadTimeSlots(
             widget.courtId,
             _selectedDate,
@@ -251,6 +253,11 @@ class _CourtDetailPageState extends State<CourtDetailPage> {
                       const SizedBox(height: 8),
                       _buildBookingMatrix(bookingVm, court.pricePerHour,
                           court.peakPricePerHour),
+
+                      // ── Reviews section ─────────────────────
+                      const SizedBox(height: 24),
+                      _buildReviewsSection(context),
+                      const SizedBox(height: 80), // padding for checkout bar
                     ],
                   ),
                 ),
@@ -467,6 +474,103 @@ class _CourtDetailPageState extends State<CourtDetailPage> {
     );
   }
 
+  Widget _buildReviewsSection(BuildContext context) {
+    return Consumer<CourtViewModel>(
+      builder: (_, vm, __) {
+        final reviews = vm.reviews;
+        final court = vm.selectedCourt;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──────────────────────────────────────
+            Row(
+              children: [
+                const Text(
+                  'Đánh giá',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const Spacer(),
+                if (court != null)
+                  Row(
+                    children: [
+                      StarRating(rating: court.rating, size: 13),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${court.rating.toStringAsFixed(1)} · ${court.reviewCount} đánh giá',
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+
+            // ── Loading ──────────────────────────────────────
+            if (vm.isLoadingReviews)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                    child: CircularProgressIndicator.adaptive()),
+              )
+
+            // ── Empty ────────────────────────────────────────
+            else if (reviews.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.star_border,
+                        size: 32, color: AppColors.textDisabled),
+                    SizedBox(height: 6),
+                    Text('Chưa có đánh giá nào',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary)),
+                  ],
+                ),
+              )
+
+            // ── Review list ──────────────────────────────────
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < reviews.length; i++) ...[
+                      if (i > 0)
+                        const Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: AppColors.border),
+                      _ReviewTile(review: reviews[i]),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _priceItem(String label, double price, Color color) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -489,6 +593,95 @@ class _CourtDetailPageState extends State<CourtDetailPage> {
   String _priceShort(double price) {
     if (price >= 1000) return '${(price / 1000).toStringAsFixed(0)}k';
     return NumberFormat('#,###', 'vi_VN').format(price) + 'đ';
+  }
+}
+
+class _ReviewTile extends StatelessWidget {
+  final Review review;
+  const _ReviewTile({required this.review});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  (review.userName?.isNotEmpty == true
+                          ? review.userName![0]
+                          : '?')
+                      .toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.userName ?? 'Người dùng',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary),
+                    ),
+                    Text(
+                      _formatDate(review.createdAt),
+                      style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: AppColors.textDisabled),
+                    ),
+                  ],
+                ),
+              ),
+              StarRating(rating: review.rating, size: 12),
+              const SizedBox(width: 4),
+              Text(
+                review.rating.toStringAsFixed(1),
+                style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary),
+              ),
+            ],
+          ),
+          if (review.comment != null && review.comment!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              review.comment!,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String iso) {
+    try {
+      return DateFormat('dd/MM/yyyy').format(DateTime.parse(iso));
+    } catch (_) {
+      return '';
+    }
   }
 }
 

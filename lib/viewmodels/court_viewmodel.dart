@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/court.dart';
+import '../models/review.dart';
 import '../services/database_service.dart';
 
 /// ViewModel cho danh sách sân, tìm kiếm và lọc
@@ -12,6 +13,8 @@ class CourtViewModel extends ChangeNotifier {
   String _searchQuery = '';
   bool _isLoading = false;
   Court? _selectedCourt;
+  List<Review> _reviews = [];
+  bool _isLoadingReviews = false;
 
   CourtViewModel(this._db);
 
@@ -21,6 +24,8 @@ class CourtViewModel extends ChangeNotifier {
   String get searchQuery => _searchQuery;
   bool get isLoading => _isLoading;
   Court? get selectedCourt => _selectedCourt;
+  List<Review> get reviews => _reviews;
+  bool get isLoadingReviews => _isLoadingReviews;
 
   // ─── Load ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +49,21 @@ class CourtViewModel extends ChangeNotifier {
   Future<void> loadCourtById(int id) async {
     _selectedCourt = await _db.getCourtById(id);
     notifyListeners();
+  }
+
+  /// Tải danh sách reviews của sân
+  Future<void> loadReviews(int courtId) async {
+    _isLoadingReviews = true;
+    notifyListeners();
+    try {
+      final maps = await _db.getReviewsByCourt(courtId);
+      _reviews = maps.map((m) => Review.fromMap(m)).toList();
+    } catch (e) {
+      debugPrint('CourtViewModel.loadReviews error: $e');
+    } finally {
+      _isLoadingReviews = false;
+      notifyListeners();
+    }
   }
 
   // ─── Filter & Search ───────────────────────────────────────────────────────
