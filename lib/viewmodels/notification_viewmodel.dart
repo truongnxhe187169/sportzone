@@ -56,6 +56,7 @@ class NotificationViewModel extends ChangeNotifier {
     required String title,
     required String body,
     required String type,
+    int? bookingId,
   }) async {
     final notif = AppNotification(
       id: 0,
@@ -65,6 +66,7 @@ class NotificationViewModel extends ChangeNotifier {
       type: type,
       isRead: false,
       createdAt: DateTime.now().toIso8601String(),
+      bookingId: bookingId,
     );
     final id = await _db.insertNotification(notif);
     final savedNotif = notif.copyWith(id: id);

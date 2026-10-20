@@ -7,6 +7,7 @@ class AppNotification {
   final String type; // 'booking' | 'cancel' | 'reminder' | 'system'
   final bool isRead;
   final String createdAt; // ISO 8601
+  final int? bookingId; // nullable — link tới lịch đặt liên quan
 
   const AppNotification({
     required this.id,
@@ -16,6 +17,7 @@ class AppNotification {
     required this.type,
     required this.isRead,
     required this.createdAt,
+    this.bookingId,
   });
 
   factory AppNotification.fromMap(Map<String, dynamic> map) => AppNotification(
@@ -26,6 +28,7 @@ class AppNotification {
         type: map['type'] as String,
         isRead: (map['is_read'] as int) == 1,
         createdAt: map['created_at'] as String,
+        bookingId: map['booking_id'] as int?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -35,6 +38,7 @@ class AppNotification {
         'type': type,
         'is_read': isRead ? 1 : 0,
         'created_at': createdAt,
+        if (bookingId != null) 'booking_id': bookingId,
       };
 
   AppNotification copyWith({
@@ -45,6 +49,7 @@ class AppNotification {
     String? type,
     bool? isRead,
     String? createdAt,
+    int? bookingId,
   }) =>
       AppNotification(
         id: id ?? this.id,
@@ -54,5 +59,6 @@ class AppNotification {
         type: type ?? this.type,
         isRead: isRead ?? this.isRead,
         createdAt: createdAt ?? this.createdAt,
+        bookingId: bookingId ?? this.bookingId,
       );
 }

@@ -12,6 +12,7 @@ import 'viewmodels/notification_viewmodel.dart';
 import 'views/auth/login_page.dart';
 import 'views/auth/register_page.dart';
 import 'views/booking/booking_cart_page.dart';
+import 'views/booking/booking_detail_page.dart';
 import 'views/booking/checkout_page.dart';
 import 'views/chat/chat_room_page.dart';
 import 'views/courts/court_detail_page.dart';
@@ -102,6 +103,13 @@ void main() async {
       GoRoute(
         path: '/my-bookings',
         builder: (_, __) => const MyBookingsPage(),
+      ),
+      GoRoute(
+        path: '/booking-detail/:id',
+        builder: (_, state) {
+          final id = int.parse(state.pathParameters['id']!);
+          return BookingDetailPage(bookingId: id);
+        },
       ),
       GoRoute(
         path: '/profile',

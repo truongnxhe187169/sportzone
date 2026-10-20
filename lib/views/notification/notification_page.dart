@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
@@ -93,7 +94,17 @@ class _NotificationPageState extends State<NotificationPage> {
             itemBuilder: (ctx, i) {
               final notif = vm.notifications[i];
               return InkWell(
-                onTap: () => vm.markRead(notif.id),
+                onTap: () {
+                  vm.markRead(notif.id);
+                  if (notif.type == 'booking' || notif.type == 'cancel') {
+                    if (notif.bookingId != null) {
+                      ctx.push('/booking-detail/${notif.bookingId}');
+                    } else {
+                      // Thông báo cũ không có bookingId → fallback về lịch đặt
+                      ctx.push('/my-bookings');
+                    }
+                  }
+                },
                 child: Container(
                   color: notif.isRead
                       ? AppColors.surface

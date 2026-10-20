@@ -19,6 +19,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   bool _isSaving = false;
+  bool _isEditing = false;
 
   @override
   void initState() {
@@ -53,7 +54,7 @@ class _ProfilePageState extends State<ProfilePage> {
     await context
         .read<AuthViewModel>()
         .updateProfile(_nameCtrl.text.trim(), _phoneCtrl.text.trim());
-    setState(() => _isSaving = false);
+    setState(() { _isSaving = false; _isEditing = false; });
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -117,168 +118,215 @@ class _ProfilePageState extends State<ProfilePage> {
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => setState(() => _isEditing = !_isEditing),
+            child: Text(
+              _isEditing ? 'Hủy' : 'Sửa',
+              style: const TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
       ),
       body: Consumer<AuthViewModel>(
-        builder: (_, vm, __) {
+        builder: (context, vm, _) {
           final user = vm.currentUser;
           if (user == null) return const SizedBox.shrink();
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                // Avatar
-                Center(
-                  child: Stack(
+                // ── Header ───────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  color: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 44,
-                        backgroundColor: AppColors.surfaceDim,
-                        backgroundImage: user.avatar != null
-                            ? FileImage(File(user.avatar!))
-                            : null,
-                        child: user.avatar == null
-                            ? const Icon(Icons.person,
-                                size: 40, color: AppColors.textDisabled)
-                            : null,
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: 28,
-                            height: 28,
+                      Stack(
+                        children: [
+                          Container(
+                            width: 80,
+                            height: 80,
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                  color: AppColors.background, width: 2),
+                                  color: AppColors.primaryMuted, width: 2),
                             ),
-                            child: const Icon(Icons.camera_alt,
-                                size: 14, color: Colors.white),
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundColor: AppColors.primaryLight,
+                              backgroundImage: user.avatar != null
+                                  ? FileImage(File(user.avatar!))
+                                  : null,
+                              child: user.avatar == null
+                                  ? const Icon(Icons.person,
+                                      size: 40, color: AppColors.primary)
+                                  : null,
+                            ),
                           ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: AppColors.primary, width: 1.5),
+                                ),
+                                child: const Icon(Icons.camera_alt,
+                                    size: 13, color: AppColors.primary),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        user.name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        user.email,
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.primaryMuted),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  user.name,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  user.email,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 24),
 
-                // Edit form
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+                const SizedBox(height: 16),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _fieldLabel(AppStrings.nameLabel),
-                      TextField(
-                        controller: _nameCtrl,
-                        decoration: _inputDec('Họ và tên'),
-                      ),
-                      const SizedBox(height: 14),
-                      _fieldLabel(AppStrings.phoneLabel),
-                      TextField(
-                        controller: _phoneCtrl,
-                        keyboardType: TextInputType.phone,
-                        decoration: _inputDec('Số điện thoại'),
-                      ),
-                      const SizedBox(height: 14),
-                      _fieldLabel('Email'),
-                      TextField(
-                        controller: TextEditingController(text: user.email),
-                        enabled: false,
-                        decoration: _inputDec('').copyWith(
-                          filled: true,
-                          fillColor: AppColors.surfaceDim,
+                      // ── Thông tin cá nhân ─────────────────────
+                      _sectionLabel('Thông tin cá nhân'),
+                      const SizedBox(height: 6),
+                      _infoCard([
+                        _infoRow(
+                          icon: Icons.person_outline,
+                          label: AppStrings.nameLabel,
+                          child: _isEditing
+                              ? TextField(
+                                  controller: _nameCtrl,
+                                  decoration: _inputDec('Họ và tên'),
+                                  style: const TextStyle(fontSize: 13),
+                                )
+                              : Text(user.name,
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textPrimary)),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+                        _divider(),
+                        _infoRow(
+                          icon: Icons.phone_outlined,
+                          label: AppStrings.phoneLabel,
+                          child: _isEditing
+                              ? TextField(
+                                  controller: _phoneCtrl,
+                                  keyboardType: TextInputType.phone,
+                                  decoration: _inputDec('Số điện thoại'),
+                                  style: const TextStyle(fontSize: 13),
+                                )
+                              : Text(
+                                  user.phone?.isNotEmpty == true
+                                      ? user.phone!
+                                      : '—',
+                                  style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.textPrimary)),
+                        ),
+                        _divider(),
+                        _infoRow(
+                          icon: Icons.email_outlined,
+                          label: 'Email',
+                          child: Text(user.email,
+                              style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary)),
+                        ),
+                      ]),
 
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _saveProfile,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4)),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      textStyle: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.white),
+                      if (_isEditing) ...[
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(4)),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 13),
                             ),
-                          )
-                        : const Text(AppStrings.saveChanges),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Text(AppStrings.saveChanges,
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ],
 
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push('/my-bookings'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4)),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                    ),
-                    child: const Text(AppStrings.myBookings,
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: _logout,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4)),
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                    ),
-                    child: const Text(AppStrings.logoutButton,
-                        style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w600)),
+                      // ── Hoạt động ─────────────────────────────
+                      _sectionLabel('Hoạt động'),
+                      const SizedBox(height: 6),
+                      _infoCard([
+                        _actionRow(
+                          icon: Icons.calendar_today_outlined,
+                          label: AppStrings.myBookings,
+                          onTap: () => context.push('/my-bookings'),
+                        ),
+                      ]),
+
+                      const SizedBox(height: 16),
+
+                      // ── Tài khoản ─────────────────────────────
+                      _sectionLabel('Tài khoản'),
+                      const SizedBox(height: 6),
+                      _infoCard([
+                        _actionRow(
+                          icon: Icons.logout,
+                          label: AppStrings.logoutButton,
+                          labelColor: AppColors.error,
+                          iconColor: AppColors.error,
+                          onTap: _logout,
+                          showArrow: false,
+                        ),
+                      ]),
+
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
               ],
@@ -289,23 +337,104 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _fieldLabel(String label) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Text(label,
-            style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
+  // ── Helpers ──────────────────────────────────────────────
+
+  Widget _sectionLabel(String label) => Padding(
+        padding: const EdgeInsets.only(left: 2, bottom: 2),
+        child: Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
       );
+
+  Widget _infoCard(List<Widget> children) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(children: children),
+      );
+
+  Widget _infoRow({
+    required IconData icon,
+    required String label,
+    required Widget child,
+  }) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 2),
+                  child,
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _actionRow({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color iconColor = AppColors.textSecondary,
+    Color labelColor = AppColors.textPrimary,
+    bool showArrow = true,
+  }) =>
+      InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(4),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              Icon(icon, size: 16, color: iconColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: labelColor)),
+              ),
+              if (showArrow)
+                const Icon(Icons.chevron_right,
+                    size: 16, color: AppColors.textDisabled),
+            ],
+          ),
+        ),
+      );
+
+  Widget _divider() => const Divider(
+      height: 1, thickness: 1, color: AppColors.border, indent: 40);
 
   InputDecoration _inputDec(String hint) => InputDecoration(
         hintText: hint,
         hintStyle:
             const TextStyle(color: AppColors.textDisabled, fontSize: 13),
+        isDense: true,
         filled: true,
         fillColor: AppColors.surface,
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
           borderSide: const BorderSide(color: AppColors.border),
@@ -317,10 +446,6 @@ class _ProfilePageState extends State<ProfilePage> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(4),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(4),
-          borderSide: const BorderSide(color: AppColors.border),
         ),
       );
 }

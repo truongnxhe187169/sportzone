@@ -45,6 +45,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         title: 'Đặt sân thành công',
         body: 'Bạn đã đặt sân ${court.name} thành công. Mã đặt sân: #$bookingId',
         type: 'booking',
+        bookingId: bookingId,
       );
 
       // Push notification local
