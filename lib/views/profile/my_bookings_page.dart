@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_strings.dart';
@@ -20,7 +21,6 @@ class MyBookingsPage extends StatefulWidget {
 class _MyBookingsPageState extends State<MyBookingsPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final Map<int, bool> _reviewedMap = {};
 
   @override
   void initState() {
@@ -82,6 +82,7 @@ class _MyBookingsPageState extends State<MyBookingsPage>
             title: 'Huỷ đặt sân thành công',
             body: 'Bạn đã huỷ đặt sân ${booking.courtName ?? ''}. Tiền cọc sẽ được hoàn theo chính sách.',
             type: 'cancel',
+            bookingId: booking.id,
           );
       if (mounted) {
         messenger.showSnackBar(
@@ -153,7 +154,6 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             ? null
                             : commentCtrl.text.trim(),
                       );
-                  setState(() => _reviewedMap[booking.id] = true);
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
               },
@@ -243,7 +243,6 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                 bookings: completed,
                 emptyMessage: 'Chưa có trận đấu nào',
                 onReview: _onReview,
-                reviewedMap: _reviewedMap,
               ),
               _BookingList(
                 bookings: cancelled,
@@ -262,14 +261,12 @@ class _BookingList extends StatelessWidget {
   final String emptyMessage;
   final Future<void> Function(Booking)? onCancel;
   final Future<void> Function(Booking)? onReview;
-  final Map<int, bool>? reviewedMap;
 
   const _BookingList({
     required this.bookings,
     required this.emptyMessage,
     this.onCancel,
     this.onReview,
-    this.reviewedMap,
   });
 
   @override
@@ -293,12 +290,18 @@ class _BookingList extends StatelessWidget {
     }
     return ListView.builder(
       itemCount: bookings.length,
-      itemBuilder: (_, i) => BookingTile(
-        booking: bookings[i],
-        onCancel: onCancel != null ? () => onCancel!(bookings[i]) : null,
-        onReview: onReview != null ? () => onReview!(bookings[i]) : null,
-        hasReviewed: reviewedMap?[bookings[i].id] ?? false,
-      ),
+      itemBuilder: (ctx, i) {
+        final booking = bookings[i];
+        final reviewed =
+            context.read<BookingViewModel>().isReviewed(booking.id);
+        return BookingTile(
+          booking: booking,
+          onTap: () => ctx.push('/booking-detail/${booking.id}'),
+          onCancel: onCancel != null ? () => onCancel!(booking) : null,
+          onReview: onReview != null ? () => onReview!(booking) : null,
+          hasReviewed: reviewed,
+        );
+      },
     );
   }
 }

@@ -12,6 +12,7 @@ import '../views/booking/checkout_page.dart';
 import '../views/map/map_page.dart';
 import '../views/chat/chat_room_page.dart';
 import '../views/notification/notification_page.dart';
+import '../views/booking/booking_detail_page.dart';
 import '../views/profile/my_bookings_page.dart';
 import '../views/profile/profile_page.dart';
 
@@ -87,6 +88,13 @@ class AppRouter {
         GoRoute(
           path: '/my-bookings',
           builder: (context, state) => const MyBookingsPage(),
+        ),
+        GoRoute(
+          path: '/booking-detail/:id',
+          builder: (context, state) {
+            final id = int.parse(state.pathParameters['id']!);
+            return BookingDetailPage(bookingId: id);
+          },
         ),
         GoRoute(
           path: '/profile',
