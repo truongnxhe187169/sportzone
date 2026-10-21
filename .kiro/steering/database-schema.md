@@ -20,13 +20,22 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), 'sportzone.db');
     _db = await openDatabase(
       path,
-      version: 1,
+      version: 2,               // tăng khi thêm migration
       onCreate: _createTables,
+      onUpgrade: _onUpgrade,
       onOpen: (db) async => await _seedIfEmpty(db),
     );
   }
 
   Database get db => _db!;
+
+  // Migration v1 → v2: thêm booking_id vào notifications
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+          'ALTER TABLE notifications ADD COLUMN booking_id INTEGER');
+    }
+  }
 }
 ```
 
@@ -144,11 +153,43 @@ CREATE TABLE notifications (
   type       TEXT    NOT NULL,    -- 'booking' | 'cancel' | 'reminder' | 'system'
   is_read    INTEGER DEFAULT 0,   -- 0 = chưa đọc, 1 = đã đọc
   created_at TEXT    NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  booking_id INTEGER,             -- nullable – FK tới bookings.id (thêm ở v2)
+  FOREIGN KEY (user_id)   REFERENCES users(id),
+  FOREIGN KEY (booking_id) REFERENCES bookings(id)
 );
 ```
 
-**Unread count (cho badge):** `SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0`
+**Migration v2:** `ALTER TABLE notifications ADD COLUMN booking_id INTEGER`  
+**Unread count (cho badge):** `SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0`  
+**Navigate to detail:** nếu `booking_id != null` và `type` là `'booking'` hoặc `'cancel'` → push `/booking-detail/:booking_id`
+
+## Review Model
+
+```dart
+class Review {
+  final int id;
+  final int courtId;
+  final int userId;
+  final double rating;   // 1.0 – 5.0
+  final String? comment;
+  final String createdAt;
+  final String? userName; // từ JOIN với users table
+
+  factory Review.fromMap(Map<String, dynamic> map) => Review(
+    id: map['id'] as int,
+    courtId: map['court_id'] as int,
+    userId: map['user_id'] as int,
+    rating: (map['rating'] as num).toDouble(),
+    comment: map['comment'] as String?,
+    createdAt: map['created_at'] as String,
+    userName: map['user_name'] as String?,
+  );
+}
+```
+
+**Query có JOIN:** `getReviewsByCourt(courtId)` dùng rawQuery JOIN với `users` để lấy `user_name`  
+**Sau khi insert:** tự động recalculate `courts.rating` và `courts.review_count`  
+**Kiểm tra đã review:** `hasReviewed(bookingId)` trả về `bool`
 
 ## Các Query thường dùng
 

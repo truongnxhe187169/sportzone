@@ -8,10 +8,11 @@ import '../services/database_service.dart';
 class ChatViewModel extends ChangeNotifier {
   final DatabaseService _db;
 
-  Map<int, List<Message>> _messagesByCourtId = {};
-  Map<int, Court> _chattedCourts = {};
-  Map<int, String?> _lastMessages = {};
+  final Map<int, List<Message>> _messagesByCourtId = {};
+  final Map<int, Court> _chattedCourts = {};
+  final Map<int, String?> _lastMessages = {};
   bool _isLoading = false;
+  int? _currentUserId; // lưu để tự reload sau khi gửi tin
 
   ChatViewModel(this._db);
 
@@ -28,11 +29,13 @@ class ChatViewModel extends ChangeNotifier {
 
   /// Tải danh sách sân user đã chat
   Future<void> loadChattedCourts(int userId) async {
+    _currentUserId = userId;
     _isLoading = true;
     notifyListeners();
     try {
       final rows = await _db.getChattedCourts(userId);
-      _chattedCourts = {};
+      _chattedCourts.clear();
+      _lastMessages.clear();
       for (final row in rows) {
         final court = Court.fromMap(row);
         _chattedCourts[court.id] = court;
@@ -79,7 +82,12 @@ class ChatViewModel extends ChangeNotifier {
       ...(_messagesByCourtId[courtId] ?? []),
       savedMsg,
     ];
-    notifyListeners();
+    // Reload chat list ngay sau khi user gửi → tab Chat cập nhật
+    if (_currentUserId != null) {
+      await loadChattedCourts(_currentUserId!);
+    } else {
+      notifyListeners();
+    }
 
     // Auto-reply sau 1.5s
     Timer(const Duration(milliseconds: 1500), () async {
@@ -99,7 +107,12 @@ class ChatViewModel extends ChangeNotifier {
         ...(_messagesByCourtId[courtId] ?? []),
         savedReply,
       ];
-      notifyListeners();
+      // Reload lại để cập nhật last message
+      if (_currentUserId != null) {
+        await loadChattedCourts(_currentUserId!);
+      } else {
+        notifyListeners();
+      }
     });
   }
 
@@ -108,7 +121,6 @@ class ChatViewModel extends ChangeNotifier {
   /// Tạo tin nhắn tự động từ "chủ sân" dựa trên nội dung tin nhắn
   String _generateAutoReply(String userText) {
     final lower = userText.toLowerCase();
-
     if (lower.contains('giá') || lower.contains('tiền') || lower.contains('phí')) {
       return 'Giá sân off-peak từ 70k-130k/giờ, giờ vàng 17:00-21:00 từ 150k-230k/giờ. Bạn muốn đặt sân cho ngày nào ạ?';
     }
