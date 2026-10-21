@@ -43,7 +43,7 @@
     { "id": "T37", "phase": "Phase 11", "title": "Viết Widget Test cho CourtCard", "done": true },
     { "id": "T38", "phase": "Phase 11", "title": "Chạy toàn bộ test suite và fix nếu có lỗi", "done": true },
     { "id": "T39", "phase": "Phase 11", "title": "GIT COMMIT: Tests hoàn thành", "done": true, "isCommit": true, "commitMessage": "test: unit test BookingViewModel and widget test CourtCard - all passing" },
-    { "id": "T40", "phase": "Phase 11", "title": "Build Release APK", "done": false, "note": "Cần Android SDK và Google Maps API key thật để build release APK. Chạy: flutter build apk --release" },
-    { "id": "T41", "phase": "Phase 11", "title": "GIT COMMIT: Final release build", "done": false, "isCommit": true, "commitMessage": "chore(build): release APK - SportZone v1.0.0", "note": "Thực hiện sau khi có Android SDK" }
+    { "id": "T40", "phase": "Phase 11", "title": "Build Release APK", "done": true, "note": "app-release.apk 55.6MB tại build/app/outputs/flutter-apk/" },
+    { "id": "T41", "phase": "Phase 11", "title": "GIT COMMIT: Final release build", "done": true, "isCommit": true, "commitMessage": "chore(android): enable core library desugaring, increase gradle timeout" }
   ]
 }
