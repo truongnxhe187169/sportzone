@@ -30,7 +30,7 @@ class BookingViewModel extends ChangeNotifier {
   // My bookings
   List<Booking> _userBookings = [];
   bool _isLoadingBookings = false;
-
+  final Set<int> _reviewedBookingIds = {};
   BookingViewModel(this._db);
 
   String get selectedDate => _selectedDate;
@@ -181,6 +181,13 @@ class BookingViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       _userBookings = await _db.getUserBookings(userId);
+      // Load trạng thái đã review từ DB cho từng booking
+      for (final b in _userBookings) {
+        if (b.status == 'confirmed') {
+          final reviewed = await _db.hasReviewed(b.id);
+          if (reviewed) _reviewedBookingIds.add(b.id);
+        }
+      }
     } catch (e) {
       debugPrint('BookingViewModel.loadUserBookings error: $e');
     } finally {
@@ -212,6 +219,9 @@ class BookingViewModel extends ChangeNotifier {
 
   // ─── Reviews ───────────────────────────────────────────────────────────────
 
+  /// Kiểm tra booking đã được đánh giá chưa (từ cache, không cần async)
+  bool isReviewed(int bookingId) => _reviewedBookingIds.contains(bookingId);
+
   /// Gửi đánh giá sân
   Future<void> submitReview({
     required int courtId,
@@ -227,9 +237,14 @@ class BookingViewModel extends ChangeNotifier {
       rating: rating,
       comment: comment,
     );
+    // Cập nhật cache ngay lập tức
+    if (bookingId != null) {
+      _reviewedBookingIds.add(bookingId);
+      notifyListeners();
+    }
   }
 
-  /// Kiểm tra booking đã được đánh giá chưa
+  /// Kiểm tra booking đã được đánh giá chưa (query DB trực tiếp)
   Future<bool> hasReviewed(int bookingId) async {
     return await _db.hasReviewed(bookingId);
   }
