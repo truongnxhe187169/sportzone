@@ -49,5 +49,8 @@ dev_dependencies:
   mockito: ^5.4.4
   build_runner: ^2.4.13
 
+dependency_overrides:
+  shared_preferences_android: 2.3.4
+
 flutter:
   uses-material-design: true
