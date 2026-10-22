@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/court.dart';
 import '../models/review.dart';
-import '../services/database_service.dart';
+import '../services/firestore_service.dart';
 
 /// ViewModel cho danh sách sân, tìm kiếm và lọc
 class CourtViewModel extends ChangeNotifier {
-  final DatabaseService _db;
+  final FirestoreService _db;
 
   List<Court> _courts = [];
   List<Court> _filteredCourts = [];
