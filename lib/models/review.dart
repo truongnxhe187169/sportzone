@@ -27,4 +27,24 @@ class Review {
         createdAt: map['created_at'] as String,
         userName: map['user_name'] as String?,
       );
+
+  factory Review.fromFirestore(Map<String, dynamic> data) => Review(
+        id: data['id'] as int,
+        courtId: data['courtId'] as int,
+        userId: data['userId'] as int,
+        rating: (data['rating'] as num).toDouble(),
+        comment: data['comment'] as String?,
+        createdAt: data['createdAt'] as String,
+        userName: data['userName'] as String?,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'courtId': courtId,
+        'userId': userId,
+        'rating': rating,
+        'comment': comment,
+        'createdAt': createdAt,
+        if (userName != null) 'userName': userName,
+      };
 }

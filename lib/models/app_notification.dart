@@ -41,6 +41,29 @@ class AppNotification {
         if (bookingId != null) 'booking_id': bookingId,
       };
 
+  factory AppNotification.fromFirestore(Map<String, dynamic> data) =>
+      AppNotification(
+        id: data['id'] as int,
+        userId: data['userId'] as int,
+        title: data['title'] as String,
+        body: data['body'] as String,
+        type: data['type'] as String,
+        isRead: data['isRead'] as bool,
+        createdAt: data['createdAt'] as String,
+        bookingId: data['bookingId'] as int?,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'userId': userId,
+        'title': title,
+        'body': body,
+        'type': type,
+        'isRead': isRead,
+        'createdAt': createdAt,
+        if (bookingId != null) 'bookingId': bookingId,
+      };
+
   AppNotification copyWith({
     int? id,
     int? userId,

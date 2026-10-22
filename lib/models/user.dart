@@ -37,6 +37,26 @@ class User {
         'created_at': createdAt,
       };
 
+  factory User.fromFirestore(Map<String, dynamic> data) => User(
+        id: data['id'] as int,
+        name: data['name'] as String,
+        email: data['email'] as String,
+        password: data['password'] as String,
+        phone: data['phone'] as String?,
+        avatar: data['avatar'] as String?,
+        createdAt: data['createdAt'] as String,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'name': name,
+        'email': email,
+        'password': password,
+        'phone': phone,
+        'avatar': avatar,
+        'createdAt': createdAt,
+      };
+
   User copyWith({
     int? id,
     String? name,

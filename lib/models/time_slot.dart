@@ -33,6 +33,24 @@ class TimeSlot {
         'is_available': isAvailable ? 1 : 0,
       };
 
+  factory TimeSlot.fromFirestore(Map<String, dynamic> data) => TimeSlot(
+        id: data['id'] as int,
+        courtId: data['courtId'] as int,
+        date: data['date'] as String,
+        startTime: data['startTime'] as String,
+        endTime: data['endTime'] as String,
+        isAvailable: data['isAvailable'] as bool,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'courtId': courtId,
+        'date': date,
+        'startTime': startTime,
+        'endTime': endTime,
+        'isAvailable': isAvailable,
+      };
+
   TimeSlot copyWith({
     int? id,
     int? courtId,
