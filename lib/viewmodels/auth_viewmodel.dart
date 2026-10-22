@@ -3,11 +3,11 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
-import '../services/database_service.dart';
+import '../services/firestore_service.dart';
 
 /// ViewModel cho chức năng xác thực (login, register, session)
 class AuthViewModel extends ChangeNotifier {
-  final DatabaseService _db;
+  final FirestoreService _db;
 
   User? _currentUser;
   bool _isLoading = false;

@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/booking.dart';
 import '../models/time_slot.dart';
-import '../services/database_service.dart';
+import '../services/firestore_service.dart';
 
 /// ViewModel cho quy trình đặt sân (cart, checkout, lịch sử, huỷ)
 class BookingViewModel extends ChangeNotifier {
-  final DatabaseService _db;
+  final FirestoreService _db;
 
   // Cache time slots theo ngày
   Map<String, List<TimeSlot>> _timeSlotsByDate = {};

@@ -2,11 +2,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/message.dart';
 import '../models/court.dart';
-import '../services/database_service.dart';
+import '../services/firestore_service.dart';
 
 /// ViewModel cho chức năng chat với chủ sân
 class ChatViewModel extends ChangeNotifier {
-  final DatabaseService _db;
+  final FirestoreService _db;
 
   final Map<int, List<Message>> _messagesByCourtId = {};
   final Map<int, Court> _chattedCourts = {};

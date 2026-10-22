@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../models/app_notification.dart';
-import '../services/database_service.dart';
+import '../services/firestore_service.dart';
 
 /// ViewModel quản lý thông báo trong app
 class NotificationViewModel extends ChangeNotifier {
-  final DatabaseService _db;
+  final FirestoreService _db;
 
   List<AppNotification> _notifications = [];
   int _unreadCount = 0;

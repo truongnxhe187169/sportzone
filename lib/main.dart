@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'core/app_colors.dart';
-import 'services/database_service.dart';
+import 'firebase_options.dart';
+import 'services/firestore_service.dart';
 import 'services/notification_service.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/booking_viewmodel.dart';
@@ -26,9 +28,8 @@ import 'views/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khởi tạo SQLite – tạo bảng và seed data nếu lần đầu
-  final dbService = DatabaseService();
-  await dbService.init();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  final dbService = FirestoreService();
 
   // Khởi tạo local notifications
   await NotificationService().init();
