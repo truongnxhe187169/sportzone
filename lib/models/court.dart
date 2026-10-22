@@ -59,6 +59,36 @@ class Court {
         'review_count': reviewCount,
       };
 
+  factory Court.fromFirestore(Map<String, dynamic> data) => Court(
+        id: data['id'] as int,
+        name: data['name'] as String,
+        type: data['type'] as String,
+        address: data['address'] as String,
+        lat: (data['lat'] as num).toDouble(),
+        lng: (data['lng'] as num).toDouble(),
+        pricePerHour: (data['pricePerHour'] as num).toDouble(),
+        peakPricePerHour: (data['peakPricePerHour'] as num).toDouble(),
+        description: data['description'] as String?,
+        images: List<String>.from(data['images'] ?? []),
+        rating: (data['rating'] as num).toDouble(),
+        reviewCount: data['reviewCount'] as int,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'name': name,
+        'type': type,
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        'pricePerHour': pricePerHour,
+        'peakPricePerHour': peakPricePerHour,
+        'description': description,
+        'images': images,
+        'rating': rating,
+        'reviewCount': reviewCount,
+      };
+
   Court copyWith({
     int? id,
     String? name,

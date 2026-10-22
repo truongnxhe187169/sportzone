@@ -60,6 +60,38 @@ class Booking {
         'created_at': createdAt,
       };
 
+  factory Booking.fromFirestore(Map<String, dynamic> data) => Booking(
+        id: data['id'] as int,
+        courtId: data['courtId'] as int,
+        userId: data['userId'] as int,
+        date: data['date'] as String,
+        startTime: data['startTime'] as String,
+        endTime: data['endTime'] as String,
+        totalPrice: (data['totalPrice'] as num).toDouble(),
+        status: data['status'] as String? ?? 'confirmed',
+        addons: data['addons'] != null
+            ? Map<String, bool>.from(data['addons'] as Map)
+            : {},
+        createdAt: data['createdAt'] as String,
+        courtName: data['courtName'] as String?,
+        courtType: data['courtType'] as String?,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'courtId': courtId,
+        'userId': userId,
+        'date': date,
+        'startTime': startTime,
+        'endTime': endTime,
+        'totalPrice': totalPrice,
+        'status': status,
+        'addons': addons,
+        'createdAt': createdAt,
+        if (courtName != null) 'courtName': courtName,
+        if (courtType != null) 'courtType': courtType,
+      };
+
   Booking copyWith({
     int? id,
     int? courtId,

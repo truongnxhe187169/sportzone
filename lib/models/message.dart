@@ -33,6 +33,24 @@ class Message {
         'timestamp': timestamp,
       };
 
+  factory Message.fromFirestore(Map<String, dynamic> data) => Message(
+        id: data['id'] as int,
+        courtId: data['courtId'] as int,
+        userId: data['userId'] as int,
+        isFromUser: data['isFromUser'] as bool,
+        text: data['text'] as String,
+        timestamp: data['timestamp'] as String,
+      );
+
+  Map<String, dynamic> toFirestore() => {
+        'id': id,
+        'courtId': courtId,
+        'userId': userId,
+        'isFromUser': isFromUser,
+        'text': text,
+        'timestamp': timestamp,
+      };
+
   Message copyWith({
     int? id,
     int? courtId,
