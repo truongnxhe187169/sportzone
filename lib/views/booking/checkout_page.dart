@@ -4,10 +4,12 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../services/notification_service.dart';
+import '../../services/vnpay_service.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
 import '../../viewmodels/court_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
+import '../payment/vnpay_payment_page.dart';
 
 /// Màn hình xác nhận đặt sân cuối cùng
 class CheckoutPage extends StatefulWidget {
@@ -26,6 +28,57 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final user = context.read<AuthViewModel>().currentUser;
     final court = context.read<CourtViewModel>().selectedCourt;
     final bookingVm = context.read<BookingViewModel>();
+
+    if (user == null || court == null) {
+      setState(() => _isConfirming = false);
+      return;
+    }
+
+    final offPeak = court.pricePerHour;
+    final peak = court.peakPricePerHour;
+    final total = bookingVm.totalPriceWithCourtPrices(offPeak, peak);
+    final deposit = total * 0.5;
+
+    // Tạo URL thanh toán VNPay
+    final paymentUrl = VNPayService.buildPaymentUrl(
+      bookingId: DateTime.now().millisecondsSinceEpoch % 100000,
+      amount: deposit,
+      orderInfo: 'Dat san ${court.name} - SportZone',
+    );
+
+    setState(() => _isConfirming = false);
+
+    // Mở màn VNPay
+    if (!mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VnPayPaymentPage(
+          paymentUrl: paymentUrl,
+          onResult: (result) => _handlePaymentResult(result),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handlePaymentResult(VNPayResult result) async {
+    if (!result.isSuccess) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Thanh toán thành công → confirm booking
+    setState(() => _isConfirming = true);
+
+    final user = context.read<AuthViewModel>().currentUser;
+    final court = context.read<CourtViewModel>().selectedCourt;
+    final bookingVm = context.read<BookingViewModel>();
     final notifVm = context.read<NotificationViewModel>();
 
     if (user == null || court == null) {
@@ -39,7 +92,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         courtId: court.id,
       );
 
-      // Tạo thông báo in-app
       await notifVm.createNotification(
         userId: user.id,
         title: 'Đặt sân thành công',
@@ -48,7 +100,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
         bookingId: bookingId,
       );
 
-      // Push notification local
       await NotificationService().showNotification(
         title: 'Đặt sân thành công',
         body: 'Sân ${court.name} đã được giữ chỗ cho bạn!',
@@ -57,10 +108,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đặt sân thành công!'),
+          SnackBar(
+            content: Text('Đặt sân thành công! Mã GD: ${result.transactionNo}'),
             backgroundColor: AppColors.success,
-            duration: Duration(seconds: 3),
+            duration: const Duration(seconds: 3),
           ),
         );
         context.go('/home');
@@ -69,7 +120,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Đặt sân thất bại: $e'),
+            content: Text('Lỗi xác nhận đặt sân: $e'),
             backgroundColor: AppColors.error,
           ),
         );
