@@ -6,6 +6,7 @@ import '../../core/app_strings.dart';
 import '../../models/booking.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
+import '../../viewmodels/court_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../widgets/booking_tile.dart';
 import '../../widgets/star_rating.dart';
@@ -154,6 +155,8 @@ class _MyBookingsPageState extends State<MyBookingsPage>
                             ? null
                             : commentCtrl.text.trim(),
                       );
+                  // Reload courts để rating cập nhật trên danh sách
+                  await context.read<CourtViewModel>().loadCourts();
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
               },

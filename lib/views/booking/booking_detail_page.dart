@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_colors.dart';
 import '../../models/booking.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/booking_viewmodel.dart';
+import '../../viewmodels/court_viewmodel.dart';
 import '../../viewmodels/notification_viewmodel.dart';
 import '../../core/app_strings.dart';
 import '../../widgets/star_rating.dart';
@@ -22,6 +24,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   Booking? _booking;
   bool _loading = true;
   bool _hasReviewed = false;
+  bool _checkedIn = false; // demo bypass: mở khóa review cho upcoming booking
 
   @override
   void initState() {
@@ -155,6 +158,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                             ? null
                             : commentCtrl.text.trim(),
                       );
+                  // Reload courts để rating cập nhật trên danh sách
+                  await context.read<CourtViewModel>().loadCourts();
                   setState(() => _hasReviewed = true);
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -204,9 +209,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
   Widget _buildDetail(Booking b) {
     final isUpcoming = b.status == 'confirmed' &&
-        b.date.compareTo(_todayStr()) >= 0;
+        b.date.compareTo(_todayStr()) >= 0 &&
+        !_checkedIn;
     final isCompleted = b.status == 'confirmed' &&
-        b.date.compareTo(_todayStr()) < 0;
+        (b.date.compareTo(_todayStr()) < 0 || _checkedIn);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -298,7 +304,26 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           const SizedBox(height: 20),
 
           // ── Actions ───────────────────────────────────────
-          if (isUpcoming)
+          if (isUpcoming) ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => setState(() => _checkedIn = true),
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: const Text('Check-in'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  textStyle: const TextStyle(
+                      fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(
@@ -315,6 +340,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 child: const Text('Huỷ đặt sân'),
               ),
             ),
+          ],
           if (isCompleted)
             SizedBox(
               width: double.infinity,
