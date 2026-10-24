@@ -6,11 +6,15 @@ import 'core/app_colors.dart';
 import 'firebase_options.dart';
 import 'services/firestore_service.dart';
 import 'services/notification_service.dart';
+import 'viewmodels/admin_viewmodel.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'viewmodels/booking_viewmodel.dart';
 import 'viewmodels/chat_viewmodel.dart';
 import 'viewmodels/court_viewmodel.dart';
 import 'viewmodels/notification_viewmodel.dart';
+import 'views/admin/admin_dashboard_page.dart';
+import 'views/admin/admin_users_page.dart';
+import 'views/admin/admin_courts_page.dart';
 import 'views/auth/login_page.dart';
 import 'views/auth/register_page.dart';
 import 'views/booking/booking_cart_page.dart';
@@ -40,6 +44,7 @@ void main() async {
   final bookingVm = BookingViewModel(dbService);
   final chatVm = ChatViewModel(dbService);
   final notifVm = NotificationViewModel(dbService);
+  final adminVm = AdminViewModel(dbService);
 
   // Cấu hình router với refreshListenable = authVm để tự redirect khi login/logout
   final router = GoRouter(
@@ -51,6 +56,10 @@ void main() async {
       final isPublic =
           loc == '/' || loc == '/login' || loc == '/register';
       if (!isLoggedIn && !isPublic) return '/login';
+      // Admin route guard
+      if (loc.startsWith('/admin') && !(authVm.currentUser?.isAdmin ?? false)) {
+        return '/home';
+      }
       return null;
     },
     routes: [
@@ -116,6 +125,18 @@ void main() async {
         path: '/profile',
         builder: (_, __) => const ProfilePage(),
       ),
+      GoRoute(
+        path: '/admin',
+        builder: (_, __) => const AdminDashboardPage(),
+      ),
+      GoRoute(
+        path: '/admin/users',
+        builder: (_, __) => const AdminUsersPage(),
+      ),
+      GoRoute(
+        path: '/admin/courts',
+        builder: (_, __) => const AdminCourtsPage(),
+      ),
     ],
   );
 
@@ -127,6 +148,7 @@ void main() async {
         ChangeNotifierProvider<BookingViewModel>.value(value: bookingVm),
         ChangeNotifierProvider<ChatViewModel>.value(value: chatVm),
         ChangeNotifierProvider<NotificationViewModel>.value(value: notifVm),
+        ChangeNotifierProvider<AdminViewModel>.value(value: adminVm),
       ],
       child: SportZoneApp(router: router),
     ),
