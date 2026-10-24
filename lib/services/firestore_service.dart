@@ -81,6 +81,7 @@ class FirestoreService {
           'images': images,
           'rating': c['rating'],
           'reviewCount': c['review_count'],
+          'isActive': true,
         },
       );
     }
@@ -450,8 +451,10 @@ class FirestoreService {
     try {
       await _initializeIfNeeded();
       final snap = await _db.collection('courts').get();
-      final courts =
-          snap.docs.map((d) => Court.fromFirestore(d.data())).toList();
+      final courts = snap.docs
+          .map((d) => Court.fromFirestore(d.data()))
+          .where((c) => c.isActive)
+          .toList();
       courts.sort((a, b) => b.rating.compareTo(a.rating));
       return courts;
     } catch (e) {
@@ -483,6 +486,7 @@ class FirestoreService {
       final lower = query.toLowerCase();
       final courts = snap.docs
           .map((d) => Court.fromFirestore(d.data()))
+          .where((c) => c.isActive)
           .where((c) =>
               c.name.toLowerCase().contains(lower) ||
               c.address.toLowerCase().contains(lower))
@@ -503,8 +507,10 @@ class FirestoreService {
           .collection('courts')
           .where('type', isEqualTo: type)
           .get();
-      final courts =
-          snap.docs.map((d) => Court.fromFirestore(d.data())).toList();
+      final courts = snap.docs
+          .map((d) => Court.fromFirestore(d.data()))
+          .where((c) => c.isActive)
+          .toList();
       courts.sort((a, b) => b.rating.compareTo(a.rating));
       return courts;
     } catch (e) {
@@ -637,7 +643,7 @@ class FirestoreService {
         'comment': comment,
         'createdAt': DateTime.now().toIso8601String(),
         'userName': user?.name,
-        'bookingId': ?bookingId,
+        if (bookingId != null) 'bookingId': bookingId,
       };
       await _db.collection('reviews').doc(id.toString()).set(map);
       await updateCourtRating(courtId);
@@ -897,6 +903,69 @@ class FirestoreService {
       return snap.docs.length;
     } catch (e) {
       debugPrint('FirestoreService.getUnreadCount error: $e');
+      rethrow;
+    }
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+
+  /// Lấy tất cả sân kể cả inactive (chỉ dùng cho admin)
+  Future<List<Court>> getAllCourts() async {
+    try {
+      await _initializeIfNeeded();
+      final snap = await _db.collection('courts').get();
+      final courts =
+          snap.docs.map((d) => Court.fromFirestore(d.data())).toList();
+      courts.sort((a, b) => b.rating.compareTo(a.rating));
+      return courts;
+    } catch (e) {
+      debugPrint('FirestoreService.getAllCourts error: $e');
+      rethrow;
+    }
+  }
+
+  /// Lấy tất cả users (chỉ dùng cho admin)
+  Future<List<User>> getAllUsers() async {
+    try {
+      await _initializeIfNeeded();
+      final snap = await _db.collection('users').get();
+      return snap.docs.map((d) => User.fromFirestore(d.data())).toList();
+    } catch (e) {
+      debugPrint('FirestoreService.getAllUsers error: $e');
+      rethrow;
+    }
+  }
+
+  /// Ban hoặc unban user theo id
+  Future<void> toggleUserBan(int userId, bool isBanned) async {
+    try {
+      await _initializeIfNeeded();
+      final snap = await _db
+          .collection('users')
+          .where('id', isEqualTo: userId)
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return;
+      await snap.docs.first.reference.update({'isBanned': isBanned});
+    } catch (e) {
+      debugPrint('FirestoreService.toggleUserBan error: $e');
+      rethrow;
+    }
+  }
+
+  /// Bật hoặc tắt trạng thái hoạt động của sân
+  Future<void> toggleCourtActive(int courtId, bool isActive) async {
+    try {
+      await _initializeIfNeeded();
+      final snap = await _db
+          .collection('courts')
+          .where('id', isEqualTo: courtId)
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return;
+      await snap.docs.first.reference.update({'isActive': isActive});
+    } catch (e) {
+      debugPrint('FirestoreService.toggleCourtActive error: $e');
       rethrow;
     }
   }

@@ -32,7 +32,14 @@ class AuthViewModel extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('user_id');
     if (userId != null) {
-      _currentUser = await _db.getUserById(userId);
+      final user = await _db.getUserById(userId);
+      if (user?.isBanned == true) {
+        // Tài khoản bị khoá: xoá session, không phục hồi
+        await prefs.remove('user_id');
+        _currentUser = null;
+      } else {
+        _currentUser = user;
+      }
       notifyListeners();
     }
   }
@@ -48,6 +55,11 @@ class AuthViewModel extends ChangeNotifier {
       final user = await _db.getUserByEmail(email.trim().toLowerCase());
       if (user == null || user.password != _hashPassword(password)) {
         _errorMessage = 'Email hoặc mật khẩu không đúng';
+        _setLoading(false);
+        return false;
+      }
+      if (user.isBanned) {
+        _errorMessage = 'Tài khoản đã bị khoá. Vui lòng liên hệ quản trị viên.';
         _setLoading(false);
         return false;
       }

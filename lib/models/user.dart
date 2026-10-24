@@ -7,6 +7,8 @@ class User {
   final String? phone;
   final String? avatar; // local file path hoặc URL
   final String createdAt;
+  final bool isAdmin; // quyền admin
+  final bool isBanned; // trạng thái khoá tài khoản
 
   const User({
     required this.id,
@@ -16,6 +18,8 @@ class User {
     this.phone,
     this.avatar,
     required this.createdAt,
+    this.isAdmin = false,
+    this.isBanned = false,
   });
 
   factory User.fromMap(Map<String, dynamic> map) => User(
@@ -45,6 +49,8 @@ class User {
         phone: data['phone'] as String?,
         avatar: data['avatar'] as String?,
         createdAt: data['createdAt'] as String,
+        isAdmin: data['isAdmin'] as bool? ?? false,
+        isBanned: data['isBanned'] as bool? ?? false,
       );
 
   Map<String, dynamic> toFirestore() => {
@@ -55,6 +61,8 @@ class User {
         'phone': phone,
         'avatar': avatar,
         'createdAt': createdAt,
+        'isAdmin': isAdmin,
+        'isBanned': isBanned,
       };
 
   User copyWith({
@@ -65,6 +73,8 @@ class User {
     String? phone,
     String? avatar,
     String? createdAt,
+    bool? isAdmin,
+    bool? isBanned,
   }) =>
       User(
         id: id ?? this.id,
@@ -74,5 +84,7 @@ class User {
         phone: phone ?? this.phone,
         avatar: avatar ?? this.avatar,
         createdAt: createdAt ?? this.createdAt,
+        isAdmin: isAdmin ?? this.isAdmin,
+        isBanned: isBanned ?? this.isBanned,
       );
 }
