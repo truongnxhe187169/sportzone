@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../../core/app_colors.dart';
 import '../../services/vnpay_service.dart';
 
-/// Màn hình thanh toán VNPay dùng WebView
+/// Màn hình thanh toán VNPay dùng InAppWebView
+/// Dùng flutter_inappwebview thay vì webview_flutter vì có API bypass SSL cert
+/// (cần thiết cho VNPay sandbox trên Android emulator)
 class VnPayPaymentPage extends StatefulWidget {
   final String paymentUrl;
   final void Function(VNPayResult) onResult;
@@ -19,44 +21,8 @@ class VnPayPaymentPage extends StatefulWidget {
 }
 
 class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
-  late final WebViewController _controller;
   bool _isLoading = true;
   bool _handled = false; // tránh gọi callback 2 lần
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) => setState(() => _isLoading = true),
-          onPageFinished: (_) => setState(() => _isLoading = false),
-          onNavigationRequest: (request) {
-            // Bắt return URL từ VNPay
-            if (!_handled && VNPayService.isReturnUrl(request.url)) {
-              _handled = true;
-              final uri = Uri.parse(request.url);
-              final result = VNPayService.parseResult(uri);
-              // Về lại màn trước rồi truyền kết quả
-              if (mounted) {
-                Navigator.of(context).pop();
-                widget.onResult(result);
-              }
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-          onWebResourceError: (error) {
-            // Chỉ hiện lỗi nếu không phải lỗi từ intercepted URL
-            if (!_handled) {
-              debugPrint('VNPay WebView error: ${error.description}');
-            }
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.paymentUrl));
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +59,7 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
               'https://sandbox.vnpayment.vn/paymentv2/Images/favicon.ico',
               width: 20,
               height: 20,
-              errorBuilder: (_, __, ___) =>
+              errorBuilder: (context, error, stack) =>
                   const Icon(Icons.payment, size: 20, color: AppColors.primary),
             ),
             const SizedBox(width: 8),
@@ -109,7 +75,63 @@ class _VnPayPaymentPageState extends State<VnPayPaymentPage> {
       ),
       body: Stack(
         children: [
-          WebViewWidget(controller: _controller),
+          InAppWebView(
+            initialUrlRequest: URLRequest(
+              url: WebUri(widget.paymentUrl),
+            ),
+            initialSettings: InAppWebViewSettings(
+              javaScriptEnabled: true,
+              // User agent giống Chrome mobile để VNPay không block
+              userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 4) '
+                  'AppleWebKit/537.36 (KHTML, like Gecko) '
+                  'Chrome/120.0.0.0 Mobile Safari/537.36',
+              // Cho phép load mixed content
+              mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+            ),
+            // Bypass SSL certificate errors — cần thiết cho VNPay sandbox
+            // trên emulator vì System WebView thiếu intermediate CA
+            onReceivedServerTrustAuthRequest: (controller, challenge) async {
+              return ServerTrustAuthResponse(
+                action: ServerTrustAuthResponseAction.PROCEED,
+              );
+            },
+            onLoadStart: (controller, url) {
+              setState(() => _isLoading = true);
+              // Bắt return URL qua onLoadStart vì Android WebView
+              // không gọi shouldOverrideUrlLoading cho HTTP redirect (302)
+              final urlStr = url?.toString() ?? '';
+              if (!_handled && VNPayService.isReturnUrl(urlStr)) {
+                _handled = true;
+                final uri = Uri.parse(urlStr);
+                final result = VNPayService.parseResult(uri);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  widget.onResult(result);
+                }
+              }
+            },
+            onLoadStop: (controller, url) => setState(() => _isLoading = false),
+            // shouldOverrideUrlLoading: bắt direct navigation (không qua redirect)
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              final url = navigationAction.request.url?.toString() ?? '';
+              if (!_handled && VNPayService.isReturnUrl(url)) {
+                _handled = true;
+                final uri = Uri.parse(url);
+                final result = VNPayService.parseResult(uri);
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  widget.onResult(result);
+                }
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+            onReceivedError: (controller, request, error) {
+              debugPrint(
+                'VNPay WebView error [${error.type}]: ${error.description}',
+              );
+            },
+          ),
           if (_isLoading)
             const Center(
               child: CircularProgressIndicator(

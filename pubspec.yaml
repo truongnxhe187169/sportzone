@@ -43,7 +43,8 @@ dependencies:
   go_router: ^14.3.0
 
   # Payment
-  webview_flutter: ^4.8.0
+  flutter_inappwebview: ^6.1.5
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
