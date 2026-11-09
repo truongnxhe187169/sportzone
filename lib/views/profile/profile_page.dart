@@ -307,6 +307,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           label: AppStrings.myBookings,
                           onTap: () => context.push('/my-bookings'),
                         ),
+                        if (user.isAdmin) ...[
+                          _divider(),
+                          _actionRow(
+                            icon: Icons.admin_panel_settings_outlined,
+                            label: 'Quản trị viên',
+                            onTap: () => context.push('/admin'),
+                          ),
+                        ],
                       ]),
 
                       const SizedBox(height: 16),

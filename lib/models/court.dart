@@ -14,6 +14,7 @@ class Court {
   final List<String> images; // danh sách URL ảnh
   final double rating;
   final int reviewCount;
+  final bool isActive; // trạng thái hoạt động của sân
 
   const Court({
     required this.id,
@@ -28,6 +29,7 @@ class Court {
     required this.images,
     required this.rating,
     required this.reviewCount,
+    this.isActive = true,
   });
 
   factory Court.fromMap(Map<String, dynamic> map) => Court(
@@ -72,6 +74,7 @@ class Court {
         images: List<String>.from(data['images'] ?? []),
         rating: (data['rating'] as num).toDouble(),
         reviewCount: data['reviewCount'] as int,
+        isActive: data['isActive'] as bool? ?? true,
       );
 
   Map<String, dynamic> toFirestore() => {
@@ -87,6 +90,7 @@ class Court {
         'images': images,
         'rating': rating,
         'reviewCount': reviewCount,
+        'isActive': isActive,
       };
 
   Court copyWith({
@@ -102,6 +106,7 @@ class Court {
     List<String>? images,
     double? rating,
     int? reviewCount,
+    bool? isActive,
   }) =>
       Court(
         id: id ?? this.id,
@@ -116,6 +121,7 @@ class Court {
         images: images ?? this.images,
         rating: rating ?? this.rating,
         reviewCount: reviewCount ?? this.reviewCount,
+        isActive: isActive ?? this.isActive,
       );
 
   /// Lấy tên loại sân dạng hiển thị tiếng Việt
