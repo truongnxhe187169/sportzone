@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +29,8 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
+    // Không load map trên web
+    if (kIsWeb) return;
     _initLocation();
   }
 
@@ -89,6 +92,34 @@ class _MapPageState extends State<MapPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Web không hỗ trợ Google Maps — hiện placeholder
+    if (kIsWeb) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+          title: const Text('Bản đồ sân',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary)),
+        ),
+        body: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.map_outlined, size: 64, color: AppColors.textSecondary),
+              SizedBox(height: 16),
+              Text('Tính năng bản đồ chỉ khả dụng trên mobile',
+                  style: TextStyle(fontSize: 15, color: AppColors.textSecondary)),
+              SizedBox(height: 8),
+              Text('Vui lòng dùng ứng dụng Android để xem bản đồ sân.',
+                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+            ],
+          ),
+        ),
+      );
+    }
+
     final vm = context.watch<CourtViewModel>();
 
     return Scaffold(
