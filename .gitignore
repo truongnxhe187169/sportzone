@@ -55,4 +55,3 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
 # Firebase options – chứa API key
-lib/firebase_options.dart
