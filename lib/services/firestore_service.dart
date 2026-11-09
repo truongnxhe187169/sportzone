@@ -521,14 +521,32 @@ class FirestoreService {
 
   // ── Time Slots ────────────────────────────────────────────────────────────
 
-  /// Lấy time slots của sân theo ngày, sorted by startTime ASC
+  /// Lấy time slots của sân theo ngày, sorted by startTime ASC.
+  /// Nếu không có slot cho ngày này, tự động tạo (lazy generation).
   Future<List<TimeSlot>> getTimeSlots(int courtId, String date) async {
     try {
+      await _initializeIfNeeded();
       final snap = await _db
           .collection('time_slots')
           .where('courtId', isEqualTo: courtId)
           .where('date', isEqualTo: date)
           .get();
+
+      // Lazy generation: nếu không có slot cho ngày này, tạo mới rồi re-query
+      if (snap.docs.isEmpty) {
+        await _generateSlotsForDate(courtId, date);
+        final newSnap = await _db
+            .collection('time_slots')
+            .where('courtId', isEqualTo: courtId)
+            .where('date', isEqualTo: date)
+            .get();
+        final slots = newSnap.docs
+            .map((d) => TimeSlot.fromFirestore(d.data()))
+            .toList();
+        slots.sort((a, b) => a.startTime.compareTo(b.startTime));
+        return slots;
+      }
+
       final slots =
           snap.docs.map((d) => TimeSlot.fromFirestore(d.data())).toList();
       slots.sort((a, b) => a.startTime.compareTo(b.startTime));
@@ -537,6 +555,29 @@ class FirestoreService {
       debugPrint('FirestoreService.getTimeSlots error: $e');
       rethrow;
     }
+  }
+
+  /// Tạo 18 slots (05:00–22:00) cho một cặp (courtId, date) cụ thể.
+  /// Dùng cho lazy generation khi không tìm thấy slot trong Firestore.
+  Future<void> _generateSlotsForDate(int courtId, String date) async {
+    final batch = _db.batch();
+    for (int h = 5; h < 23; h++) {
+      final startTime = '${h.toString().padLeft(2, '0')}:00';
+      final endTime = '${(h + 1).toString().padLeft(2, '0')}:00';
+      final id = await _nextId('nextTimeSlotId');
+      batch.set(
+        _db.collection('time_slots').doc(id.toString()),
+        {
+          'id': id,
+          'courtId': courtId,
+          'date': date,
+          'startTime': startTime,
+          'endTime': endTime,
+          'isAvailable': true,
+        },
+      );
+    }
+    await batch.commit();
   }
 
   /// Bulk update nhiều slot cùng lúc
